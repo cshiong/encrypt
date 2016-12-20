@@ -48,18 +48,20 @@ func readFromFile(file string) ([]byte, error) {
 func main() {
 
 	var in, out string
-	encryptCmd := flag.NewFlagSet("e", flag.ExitOnError)
+	encryptCmd := flag.NewFlagSet("e", flag.ExitOnError) //e as a command
 	encryptCmd.StringVar(&in, "i", "", "input file name")
 	encryptCmd.StringVar(&out, "o", "", "output file name if not provide it will be the same as the input file")
 
-	decryptCmd := flag.NewFlagSet("d", flag.ExitOnError)
+	decryptCmd := flag.NewFlagSet("d", flag.ExitOnError) //d as a command
 	decryptCmd.StringVar(&in, "i", "", "input file name")
 	decryptCmd.StringVar(&out, "o", "", "output file name if not provide it will be the same as the input file")
 
-	if len(os.Args) == 1 {
+	if len(os.Args) <= 3 {
 		fmt.Println("usage: encrypt <command> [<args>]")
-		fmt.Println(" e  encrypt file")
-		fmt.Println(" d  decrypt file ")
+		fmt.Println(" e  encrypt file command")
+		fmt.Println(" d  decrypt file command")
+		fmt.Println(" -i  file name to encrpyt or decrypt ")
+		fmt.Println(" -o  output file name for encrypt or decrypt, if not provided will use the same name as input file")
 		return
 	}
 	//for help, flag default -h will show above info.
@@ -85,7 +87,7 @@ func main() {
 
 	fmt.Printf("Enter your password: ")
 	maskedPassword, _ := gopass.GetPasswdMasked() // Masked
-	fmt.Println(string(maskedPassword))
+	//fmt.Println(string(maskedPassword))
 
 	key := generateKey(maskedPassword)
 
