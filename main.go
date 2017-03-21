@@ -31,15 +31,16 @@ func readline() string {
 	return string(line)
 }
 
-func writeToFile(data []byte, file string) {
+func writeToFile(data []byte, file string, perm os.FileMode) {
 	if len(data) == 0 {
 		fmt.Println("make sure your password is correct,there is nothing to write to the file")
 	}
 
-	ioutil.WriteFile(file, data, 777)
+	ioutil.WriteFile(file, data, perm)
 }
 
 func readFromFile(file string) ([]byte, error) {
+
 	data, err := ioutil.ReadFile(file)
 	return data, err
 }
@@ -93,23 +94,26 @@ func main() {
 
 	if encryptCmd.Parsed() {
 		plaintext, err := readFromFile(in)
+		fmt.Printf("Encrypt file:%s\n",in)
 		if err != nil {
 			fmt.Printf("faild to read file, error : %s", err.Error())
+			os.Exit(1)
 		}
 		ciphertext, _ := CBCEncrypter(key, plaintext)
-		writeToFile(ciphertext, out)
+		writeToFile(ciphertext, out,0400)
 		return
 	}
 
 	if decryptCmd.Parsed() {
 
 		ciphertext, err := readFromFile(in)
+		fmt.Printf("Dncrypt file:%s\n",in)
 		if err != nil {
 			fmt.Println("File is not found")
 			os.Exit(1)
 		}
 		plaintext, _ := CBCDecrypter(key, ciphertext)
-		writeToFile(plaintext, out)
+		writeToFile(plaintext, out,0640)
 	}
 
 }
