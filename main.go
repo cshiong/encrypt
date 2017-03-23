@@ -17,10 +17,19 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/pbkdf2"
 	"encoding/binary"
+	"path/filepath"
+	. "github.com/pierrre/archivefile/zip"
+	"strings"
 )
 
 
 var salt = "Fr)$FN^^$MSLG%NR-G!zDcvNCTHOvDXq"
+
+type Command int
+const (
+	ENCRYPT Command = 1 + iota
+	DECRYPT
+)
 
 func readline() string {
 	bio := bufio.NewReader(os.Stdin)
@@ -35,12 +44,12 @@ func writeToFile(data []byte, file string, perm os.FileMode) {
 	if len(data) == 0 {
 		fmt.Println("make sure your password is correct,there is nothing to write to the file")
 	}
-
+	fmt.Printf("write to file:%s\n",file)
 	ioutil.WriteFile(file, data, perm)
 }
 
 func readFromFile(file string) ([]byte, error) {
-
+	fmt.Printf("read from file:%s\n",file)
 	data, err := ioutil.ReadFile(file)
 	return data, err
 }
@@ -93,27 +102,43 @@ func main() {
 	key := generateKey(maskedPassword)
 
 	if encryptCmd.Parsed() {
-		plaintext, err := readFromFile(in)
-		fmt.Printf("Encrypt file:%s\n",in)
+		cmd :=ENCRYPT
+		inF,err := os.Stat(in)
 		if err != nil {
-			fmt.Printf("faild to read file, error : %s", err.Error())
-			os.Exit(1)
+			panic(err.Error())
 		}
-		ciphertext, _ := CBCEncrypter(key, plaintext)
-		writeToFile(ciphertext, out,0400)
+		if inF.IsDir(){
+			workOnFolder(in, "./temp" ,key,cmd)
+			//later need to write to out file and compress it.
+
+			if !strings.HasSuffix(out, ".zip"){
+				out += ".zip"
+			}
+			err = ArchiveFile("./temp/",out,nil)
+			if err != nil { panic(err.Error())}
+                      os.RemoveAll("./temp")
+		}else{
+			workOnFile(in, out, key,cmd)
+		}
 		return
 	}
 
 	if decryptCmd.Parsed() {
-
-		ciphertext, err := readFromFile(in)
-		fmt.Printf("Dncrypt file:%s\n",in)
-		if err != nil {
-			fmt.Println("File is not found")
-			os.Exit(1)
+                 cmd := DECRYPT
+		if strings.HasSuffix(in, ".zip") {
+			//test unarchive
+			err := UnarchiveFile(in, "./temp2", nil)
+			if err != nil {
+				panic(err)
+			}
+			workOnFolder("./temp2",out, key,cmd)
+			//remove temp folder
+			os.RemoveAll("./temp2")
+		}else{
+			workOnFile(in, out, key,cmd)
 		}
-		plaintext, _ := CBCDecrypter(key, ciphertext)
-		writeToFile(plaintext, out,0640)
+		return
+
 	}
 
 }
@@ -281,5 +306,50 @@ func generateKey(password []byte) []byte {
 func generateKey2(password []byte) ([]byte, error) {
 
 	return bcrypt.GenerateFromPassword(password, bcrypt.MaxCost)
+
+}
+
+func workOnFolder(inPath, outDir string,key []byte, cmd Command){
+	fileList, err :=ioutil.ReadDir(inPath)
+	os.MkdirAll(outDir,0700)
+	if err != nil {
+		fmt.Errorf("Faild to read diretory: %s error: %s \n",inPath, err.Error())
+		panic(err.Error())
+
+	}
+	for _, f := range fileList {
+		fmt.Printf("input file: %s\n",inPath)
+		if f.IsDir() {
+			workOnFolder(filepath.Join(inPath,f.Name()), filepath.Join(outDir,f.Name()),key,cmd)
+		}else{
+		    workOnFile(filepath.Join(inPath,f.Name()), filepath.Join(outDir,f.Name()),key,cmd)
+		}
+	}
+}
+
+
+
+func workOnFile(iFileName,oFileName string ,key []byte,cmd Command){
+
+	plaintext, err := readFromFile(iFileName)
+	if err != nil {
+		fmt.Printf("faild to read file, error : %s", err.Error())
+		os.Exit(1)
+	}
+	switch cmd {
+	case ENCRYPT:
+		ciphertext, _ := CBCEncrypter(key, plaintext)
+		writeToFile(ciphertext, oFileName,0600)
+	default:
+		ciphertext, err := readFromFile(iFileName)
+		fmt.Printf("Dncrypt file:%s\n",iFileName)
+		if err != nil {
+			fmt.Println("File is not found")
+			os.Exit(1)
+		}
+		plaintext, _ := CBCDecrypter(key, ciphertext)
+		writeToFile(plaintext, oFileName,0640)
+
+	}
 
 }

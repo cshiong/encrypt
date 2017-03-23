@@ -3,7 +3,7 @@ This program provides a way to protect your data(files) with high security by en
 
 # Usage
 
-To encrypt or decrypt files.
+To encrypt or decrypt files and director
 
 To run this program. you need provide either of the two commands: e or d
  and one required argument -i which is the full name of the file you like to encrypt or decrypt.
@@ -19,7 +19,7 @@ To run this program. you need provide either of the two commands: e or d
  it will ask you password to fulfill the command, the password is the only thing you need to remember when you encrypt or decrypt file.
  if you forget it, there is no way to redeem it.
 
- 
+ *Note: for directory we will encrypt the folder and archived into .zip file, if the output file name not provided .zip suffix, it will be added.
 
 # Technology
 
